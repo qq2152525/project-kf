@@ -11,74 +11,66 @@ Schema = mongoose.Schema
 path = require "path"
 fs = require "fs"
 csv = require "fast-csv"
+async = require "async"
 
 {MongoClient} = require "mongodb"
 
-# {
-# "_id" : ObjectId("526c87bd11ba6145572c3475"),
-# "Name" : "周晓晨",
-# "CardNo" : "",
-# "Descriot" : "",
-# "CtfTp" :
-# "ID",
-# "CtfId" : NumberLong("370682199312040223"),
-# "Gender" : "F",
-# "Birthday" : NumberLong(19931204),
-# "Address" : "",
-# "Zip" : "",
-# "Dirty" : "F",
-# "District1" : "",
-# "District2" : "CHN",
-# "District3" : 37,
-# "District4" : 370682,
-# "District5" : "",
-# "District6" : "",
-# "FirstNm" : "",
-# "LastNm" : "",
-# "Duty" : "",
-# "Mobile" : "",
-# "Tel" : "",
-# "Fax" : "",
-# "EMail" : "",
-# "Nation" : "",
-# "Taste" : "",
-# "Education" : "",
-# "Company" : "",
-# "CTel" : "",
-# "CAddress" : "",
-# "CZip" : "",
-# "Family" : 0,
-# "Version" : "2012-12-16 7:43:30",
-# "id" : NumberLong(19720186)
-# }
-
-
 DC_CITYS = ["北京","南京","上海","汉口","青岛","大连","沈阳","哈尔","西安","天津","重庆", "广州","深圳","香港","台湾","澳门" ]
 
+COUNT_CSV = 0
+COUNT_INSERTION = 0
+CSV_FILES = []
+CUR_CSV_FILE = null
+DB_COLLECTION = null
 
 console.log "[mongo-performance::init] %j", process.argv
 #pathToCSVFile = path.join __dirname, process.argv[2]
 pathToCSVFile = process.argv[2]
 unless fs.existsSync(pathToCSVFile)
-  console.log "[mongo-performance::init] missing csv sample at:#{pathToCSVFile}"
+  console.log "[mongo-performance::init] missing csv folder at:#{pathToCSVFile}"
   process.exit(1)
+
+
+try
+  files = fs.readdirSync pathToCSVFile
+  #console.log "[mongo-performance::file] #{files}"
+
+  for file in files
+    #console.log "[mongo-performance::file] #{path.extname(file)}"
+    if path.extname(file) is ".csv"
+      CSV_FILES.push(path.join(pathToCSVFile, file))
+
+
+unless CSV_FILES.length > 0
+  console.log "[mongo-performance::init] missing csv files at:#{pathToCSVFile}"
+  process.exit(1)
+
+console.log "[mongo-performance::init] CSV files to process:#{CSV_FILES}"
 
 MongoClient.connect "mongodb://127.0.0.1:27017/kf", (err, db) ->
   throw err if err
-  #collection = db.collection("test_insert")
-  collection = db.collection("members")
+  #DB_COLLECTION = db.collection("test_insert")
+  DB_COLLECTION = db.collection("members")
 
   console.log "[mongo-performance::init] db is ready"
+  async.eachSeries CSV_FILES, parseCSV, (err)->
+    if err?
+      console.log "[mongo-performance::each csv] error:#{err}"
+    else
+      console.log "DONE [mongo-performance::each csv] ALL DONE! csv entry:#{COUNT_CSV}, db etnry:#{COUNT_INSERTION}"
 
-  count = 0
-  countInsert = 0
+parseCSV = (filepath, next)->
 
   # init a csv parsing job
-  job = csv pathToCSVFile,
+  job = csv filepath,
     headers : true
 
+  countRead = 0
+  countInsert = 0
+
   job.on "data", (data) ->
-    ++count
+    ++COUNT_CSV
+    ++countRead
     delete data["id"]
     delete data["Version"]
     delete data["Taste"]
@@ -112,13 +104,14 @@ MongoClient.connect "mongodb://127.0.0.1:27017/kf", (err, db) ->
     #console.log "[mongo-performance::csv::ondata] province:#{province}, address:#{address}"
     data["province"] = province if province?
 
-    console.log "[mongo-performance::csv::ondata] %j \n count:%d", data, count
-    collection.insert data, (err, docs) ->
+    #console.log "[mongo-performance::csv::ondata] %j \n count:%d", data, count
+    DB_COLLECTION.insert data, (err, docs) ->
       if err?
         console.log "[mongo-performance::db::insert] #{err}"
       else
+        ++COUNT_INSERTION
         ++countInsert
-        console.log "[mongo-performance::db::insert] succeed:%j \n insert count:%d", docs, countInsert
+        console.log "[mongo-performance::db::insert] succeed. ALL csv:#{COUNT_CSV}, insertion:#{COUNT_INSERTION}, CUR: csv:#{countRead}, insert:#{countInsert}, from:#{filepath}"
 
     return
 
@@ -129,12 +122,14 @@ MongoClient.connect "mongodb://127.0.0.1:27017/kf", (err, db) ->
 
   job.on "end", ->
     job.removeAllListeners()
-    console.log "[mongo-performance::csv::on end] processed %d records", count
+    console.log "[mongo-performance::csv::on end] complete #{filepath}"
     #db.close()
     #process.exit(0)
+    next()
     return
 
   job.parse()
+  return
 
 
 
