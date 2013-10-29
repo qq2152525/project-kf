@@ -111,7 +111,7 @@ parseCSV = (filepath, next)->
       else
         ++COUNT_INSERTION
         ++countInsert
-        console.log "[mongo-performance::db::insert] succeed. ALL csv:#{COUNT_CSV}, insertion:#{COUNT_INSERTION}, CUR: csv:#{countRead}, insert:#{countInsert}, from:#{filepath}"
+        console.log "ALL csv:#{COUNT_CSV}, insertion:#{COUNT_INSERTION}, CUR: csv:#{countRead}, insert:#{countInsert}, from:#{filepath}"
 
     return
 
