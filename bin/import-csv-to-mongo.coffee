@@ -1,3 +1,5 @@
+#!/usr/bin/env coffee
+
 ##
 # mongo-performance
 # https://github.com/yi/mongo-performance
@@ -6,8 +8,6 @@
 # Licensed under the MIT license.
 ##
 
-mongoose = require 'mongoose'
-Schema = mongoose.Schema
 path = require "path"
 fs = require "fs"
 csv = require "fast-csv"
