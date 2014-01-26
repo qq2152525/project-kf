@@ -1,6 +1,4 @@
-# mongo-performance [![Build Status](https://secure.travis-ci.org/yi/mongo-performance.png?branch=master)](http://travis-ci.org/yi/mongo-performance)
-
-performance testing on mongodb
+# Import 2000W records into mongodb
 
 ## Install
 Install the module with:
