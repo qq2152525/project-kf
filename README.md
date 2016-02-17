@@ -1,5 +1,6 @@
-# Import 2000W records into mongodb
-# Import 2000W records into mongodb
+
+# THIS PROJECT IS DEPRECATED
+
 
 ## Install
 Install the module with:
